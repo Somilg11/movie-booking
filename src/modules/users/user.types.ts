@@ -1,0 +1,12 @@
+export enum UserRole {
+  ROOT_ADMIN = 'ROOT_ADMIN',
+  SYSTEM_ADMIN = 'SYSTEM_ADMIN',
+  CLIENT = 'CLIENT',
+  CUSTOMER = 'CUSTOMER'
+}
+
+export enum ClientStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
