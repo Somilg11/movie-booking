@@ -199,10 +199,6 @@ Auth: Required (`SYSTEM_ADMIN` / `ROOT_ADMIN`)
 
 ## Client approval (admin)
 
-See also:
-
-- `docs/admin.docs.md` (admin module details)
-
 ### Approve a client
 
 ```
