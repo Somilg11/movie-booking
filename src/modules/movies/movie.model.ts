@@ -1,28 +1,45 @@
-import mongoose, { type InferSchemaType } from 'mongoose';
-import { MovieReleaseStatus } from './movie.types.js';
+import mongoose from 'mongoose';
 
-const movieSchema = new mongoose.Schema(
+export interface IMovie {
+  name: string;
+  description?: string;
+  durationMins: number;
+  language: string;
+  genres: string[];
+  releaseDate: Date;
+  posterUrl?: string;
+  trailerUrl?: string;
+  slug: string; // for SEO friendly URLs if needed, or just internal uniqueness
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const movieSchema = new mongoose.Schema<IMovie>(
   {
-    name: { type: String, required: true, trim: true, index: true },
-    description: { type: String, required: true },
-    casts: { type: [String], required: true },
-    trailerUrl: { type: String, required: true },
-    language: { type: String, required: true, default: 'English', index: true },
-    releaseDate: { type: Date, required: true, index: true },
-    director: { type: String, required: true },
-    releaseStatus: {
-      type: String,
-      required: true,
-      enum: Object.values(MovieReleaseStatus),
-      default: MovieReleaseStatus.COMING_SOON,
-      index: true
-    }
+    name: { type: String, required: true, index: true },
+    description: { type: String },
+    durationMins: { type: Number, required: true },
+    language: { type: String, required: true, index: true },
+    genres: { type: [String], required: true, index: true },
+    releaseDate: { type: Date, required: true },
+    posterUrl: { type: String },
+    trailerUrl: { type: String },
+    slug: { type: String, unique: true }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false
+  }
 );
 
-movieSchema.index({ name: 1 });
+// Pre-save hook to generate slug if not present
+movieSchema.pre('save', function (this: mongoose.HydratedDocument<IMovie>) {
+  if (this.isModified('name') || this.isNew) {
+    this.slug = this.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+});
 
-export type MovieDoc = InferSchemaType<typeof movieSchema> & { _id: mongoose.Types.ObjectId };
-
-export const MovieModel = mongoose.model('Movie', movieSchema);
+export const MovieModel = mongoose.model<IMovie>('Movie', movieSchema);

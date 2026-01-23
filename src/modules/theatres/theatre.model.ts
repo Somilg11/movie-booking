@@ -1,41 +1,51 @@
-import mongoose, { type InferSchemaType } from 'mongoose';
+import mongoose from 'mongoose';
 
-const screenSeatMapSchema = new mongoose.Schema(
-  {
-    rows: { type: Number, required: true, min: 1 },
-    cols: { type: Number, required: true, min: 1 }
-  },
-  { _id: false }
-);
+// Sub-schema for mapping movies (Shows)
+// A simple approach: list of movies currently running, with their showtimes
+const showSchema = new mongoose.Schema({
+  time: { type: Date, required: true },
+  totalSeats: { type: Number, required: false }, // optional if derived from screen
+  availableSeats: { type: Number, required: false } // naive inventory cache
+}, { _id: false });
 
-const theatreMovieSchema = new mongoose.Schema(
-  {
-    movieId: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie', required: true, index: true },
-    showTimes: { type: [Date], default: [] },
-    price: { type: Number, required: true, min: 0 }
-  },
-  { _id: false }
-);
+const theatreMovieSchema = new mongoose.Schema({
+  movieId: { type: mongoose.Schema.Types.ObjectId, ref: 'Movie', required: true },
+  price: { type: Number, required: true },
+  shows: [showSchema]
+}, { _id: false });
 
-const theatreSchema = new mongoose.Schema(
+export interface ITheatre {
+  name: string;
+  city: string;
+  pin: string;
+  address: string;
+  screens: number;
+  seatMap: Record<string, any>; // Flexible for now
+  ownerId: mongoose.Types.ObjectId;
+  movies: {
+    movieId: mongoose.Types.ObjectId;
+    price: number;
+    shows: { time: Date }[];
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const theatreSchema = new mongoose.Schema<ITheatre>(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true },
     city: { type: String, required: true, index: true },
     pin: { type: String, required: true, index: true },
     address: { type: String, required: true },
-
-    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-
-    screens: { type: Number, required: true, min: 1 },
-    seatMap: { type: Map, of: screenSeatMapSchema, default: {} },
-
-    movies: { type: [theatreMovieSchema], default: [] }
+    screens: { type: Number, required: true, default: 1 },
+    seatMap: { type: Map, of: mongoose.Schema.Types.Mixed }, // flexible
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    movies: [theatreMovieSchema] // Embedded approach simple for v1
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    versionKey: false
+  }
 );
 
-theatreSchema.index({ city: 1, pin: 1 });
-
-type TheatreDoc = InferSchemaType<typeof theatreSchema> & { _id: mongoose.Types.ObjectId };
-
-export const TheatreModel = mongoose.model<TheatreDoc>('Theatre', theatreSchema);
+export const TheatreModel = mongoose.model<ITheatre>('Theatre', theatreSchema);

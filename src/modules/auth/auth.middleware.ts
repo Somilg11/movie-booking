@@ -70,3 +70,5 @@ export const requireApprovedClient: RequestHandler = (req, res, next) => {
   }
   return next();
 };
+
+export const authorize = (roles: UserRole[]) => requireRole(...roles);
