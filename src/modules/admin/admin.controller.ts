@@ -43,3 +43,26 @@ export const rejectClient: RequestHandler = async (req, res) => {
     }
   });
 };
+
+export const listUsers: RequestHandler = async (req, res) => {
+  const { role, status, email, page = 1, limit = 20 } = req.query;
+
+  const query: any = {};
+  if (role) query.role = role;
+  if (status) query.clientStatus = status;
+  if (email) query.email = { $regex: email, $options: 'i' };
+
+  const users = await UserModel.find(query)
+    .limit(Number(limit))
+    .skip((Number(page) - 1) * Number(limit))
+    .select('-password');
+
+  const total = await UserModel.countDocuments(query);
+
+  res.status(200).json({
+    status: 'success',
+    results: users.length,
+    total,
+    data: { users }
+  });
+};

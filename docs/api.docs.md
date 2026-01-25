@@ -408,6 +408,53 @@ Public: Yes
 
 ---
 
+## Shows
+
+### Create a Show (Screening)
+```
+POST : /mba/api/v1/shows
+```
+Auth: Required (`CLIENT` owner / `ADMIN`)
+
+Body:
+```json
+{
+  "movieId": "<id>",
+  "theatreId": "<id>",
+  "screenName": "Screen 1",
+  "startTime": "2026-01-01T10:00:00Z",
+  "endTime": "2026-01-01T13:00:00Z",
+  "price": 12.0,
+  "totalSeats": 100
+}
+```
+
+### Get Shows by Movie
+```
+GET : /mba/api/v1/shows/movie/:movieId
+```
+
+### Get Shows by Theatre
+```
+GET : /mba/api/v1/shows/theatre/:theatreId
+```
+
+---
+
+## User Profile
+
+### Update Profile
+```
+PATCH : /mba/api/v1/users/me
+```
+Auth: Required
+
+Body:
+```json
+{ "name": "New Name", "phone": "+1234567890" }
+```
+
+
 ## Bookings
 
 Booking rules:

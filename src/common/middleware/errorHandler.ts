@@ -1,37 +1,68 @@
-import type { ErrorRequestHandler } from 'express';
-import { ZodError } from 'zod';
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  // Zod validation errors
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      message: 'Validation error',
-      issues: err.issues
-    });
-  }
-
-  const status = typeof err?.statusCode === 'number' ? err.statusCode : 500;
-
-  logger.error({ err }, 'Unhandled error');
-
-  return res.status(status).json({
-    message: status === 500 ? 'Internal server error' : err.message ?? 'Error'
+const sendErrorDev = (err: AppError, res: Response) => {
+  res.status(err.statusCode).json({
+    status: err.status,
+    error: err,
+    message: err.message,
+    stack: err.stack,
   });
 };
 
+const sendErrorProd = (err: AppError, res: Response) => {
+  // Operational, trusted error: send message to client
+  if (err.isOperational) {
+    res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+    });
+  } else {
+    // Programming or other unknown error: don't leak details
+    logger.error({ err }, 'ERROR 💥');
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went very wrong!',
+    });
+  }
+};
 
-// This middleware:
-// 1: Catches errors from routes
-// 2: Formats the response
-// 3: Logs the error
-// 4: Prevents app crashes
+export const errorHandler = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
 
+  if (process.env.NODE_ENV === 'development') {
+    sendErrorDev(err, res);
+  } else {
+    let error = { ...err };
+    error.message = err.message;
 
-// Route handler
-//    ↓
-// asyncHandler
-//    ↓
-// errorHandler
-//    ↓
-// client response
+    // Mongoose bad ObjectId
+    if (err.name === 'CastError') {
+      const message = `Invalid ${err.path}: ${err.value}.`;
+      error = new AppError(message, 400);
+    }
+
+    // Mongoose duplicate key
+    if (err.code === 11000) {
+      const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+      const message = `Duplicate field value: ${value}. Please use another value!`;
+      error = new AppError(message, 400);
+    }
+
+    // Mongoose validation error
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map((el: any) => el.message);
+      const message = `Invalid input data. ${errors.join('. ')}`;
+      error = new AppError(message, 400);
+    }
+
+    sendErrorProd(error, res);
+  }
+};

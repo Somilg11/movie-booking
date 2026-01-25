@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/Somilg11/movie-booking#readme",
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -32,6 +33,7 @@
     "mongoose": "^9.1.1",
     "pino": "^10.0.0",
     "pino-pretty": "^13.0.0",
+    "uuid": "^13.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
